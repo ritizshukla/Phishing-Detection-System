@@ -1,249 +1,194 @@
-🔐 Real-Time Phishing Detection System using AI/ML
+# 🔐 Real-Time Phishing Detection System using AI/ML
 
-Detect. Analyze. Protect — Real-time phishing defense using AI.
+[![Python Version](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/downloads/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.100%2B-009688.svg?logo=fastapi)](https://fastapi.tiangolo.com/)
+[![Machine Learning](https://img.shields.io/badge/ML-Scikit--learn%20%7C%20XGBoost%20%7C%20LightGBM-FF6F00.svg)](https://scikit-learn.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-📌 Overview
+> **Detect. Analyze. Protect.** — A robust, real-time phishing defense mechanism powered by a Hybrid Super Learner Ensemble Model.
 
-This project is a Real-Time AI/ML-Based Phishing Detection and Prevention System designed to identify and block malicious websites during browsing. It uses a Hybrid Super Learner Ensemble Model combining multiple machine learning algorithms to achieve high accuracy and robust performance.
+---
 
-The system is integrated with a FastAPI backend and a Chrome Extension, enabling real-time detection and user protection.
+## 📌 Overview
 
-🚀 Features
+The **Real-Time AI/ML-Based Phishing Detection and Prevention System** is designed to proactively identify and block malicious websites during active browsing. By leveraging a Hybrid Super Learner Ensemble Model, the system achieves exceptional accuracy with minimal false positives. 
 
-🔍 Real-time phishing detection: Instantly scans URLs as you browse.
+The architecture seamlessly integrates a **FastAPI backend** for rapid predictions with a lightweight **Chrome Extension**, ensuring seamless, real-time protection for the end-user.
 
-🤖 Hybrid AI/ML model: Combines Random Forest, XGBoost, and LightGBM.
+---
 
-🌐 Chrome Extension: Seamless browser integration for live website monitoring.
+## 🎥 Demo & Screenshots
 
-⚡ FastAPI backend: High-performance, asynchronous prediction API.
+*(Placeholder: Add a GIF showing the Chrome extension blocking a phishing site in real-time)*
+![Demo GIF](https://via.placeholder.com/800x400?text=Insert+Demo+GIF+Here)
 
-📊 High accuracy: Fine-tuned to drastically reduce false positives.
+**Extension Interface & Warning Screen:**
+*(Placeholder: Add screenshots of the extension popup and the red warning page)*
+<p align="center">
+  <img src="https://via.placeholder.com/400x250?text=Popup+Screenshot" width="45%" />
+  <img src="https://via.placeholder.com/400x250?text=Warning+Page+Screenshot" width="45%" />
+</p>
 
-🧠 Feature-engineered dataset: Optimized features for highly efficient training.
+---
 
-📸 Screenshots & Demo
+## 🚀 Key Features
 
-(Replace the placeholder links below with your actual image/video URLs)
+* **🔍 Real-Time Monitoring:** Scans active URLs and page contents instantly via the Chrome Extension.
+* **🤖 Hybrid AI/ML Engine:** Combines the strengths of **Random Forest**, **XGBoost**, and **LightGBM** into a Stacking Ensemble.
+* **⚡ High-Speed API:** Built on FastAPI for ultra-low latency inference.
+* **🧠 Advanced Feature Engineering:** Uses highly optimized, domain-specific attributes (e.g., URL length, HTTPS usage, special character density) for superior predictive power.
 
-🎥 Live Demo
+---
 
-(Link your demo GIF or video here)
+## 🧠 Model Architecture
 
-🖼️ Extension in Action
+To ensure high accuracy and resilience against novel phishing techniques, the system utilizes a **Hybrid Super Learner Ensemble**:
 
-Malicious Website Warning
+1.  **Random Forest:** Handles noisy datasets effectively and minimizes the risk of overfitting.
+2.  **XGBoost:** Excellently captures complex, non-linear patterns within the URL structures.
+3.  **LightGBM:** Provides lightning-fast gradient boosting, crucial for real-time inference.
+4.  **Stacking Ensemble:** Intelligently combines the predictions of the base models to produce a highly confident final classification.
 
-Safe Website Indicator
+---
 
-(Add screenshot URL here)
+## ⚙️ Tech Stack
 
-(Add screenshot URL here)
+| Component | Technology |
+| :--- | :--- |
+| **Language** | Python, JavaScript |
+| **Machine Learning** | Scikit-learn, XGBoost, LightGBM, Pandas, NumPy |
+| **Backend API** | FastAPI, Uvicorn |
+| **Frontend/Extension**| HTML, CSS, JavaScript, Chrome Extension API (MV3) |
 
-🧠 Model Architecture
+---
 
-The system uses a Hybrid Super Learner Ensemble:
+## 🛠️ Installation & Setup
 
-Random Forest → Handles noisy data and reduces overfitting.
-
-XGBoost → Learns complex patterns effectively.
-
-LightGBM → Fast and efficient gradient boosting.
-
-Stacking Ensemble → Combines the strengths of all individual models to produce a definitive classification.
-
-📁 Project Structure
-
-phishing-detection-system/
-│
-├── venv/
-├── requirements.txt
-├── README.md
-│
-├── data/
-│   ├── raw/
-│   │   ├── data_bal.xlsx
-│   │   ├── data_imbal.xlsx
-│   │
-│   ├── processed/
-│   │   ├── final_dataset.csv
-│
-├── ml/
-│   ├── train_model.py
-│   ├── evaluate_model.py
-│   ├── hybrid_model.pkl
-│
-├── backend/
-│   ├── main.py
-│   ├── model_loader.py
-│   ├── feature_extractor.py
-│
-├── extension/
-│   ├── manifest.json
-│   ├── background.js
-│   ├── content.js
-│   │
-│   ├── popup/
-│   │   ├── popup.html
-│   │   ├── popup.js
-│   │
-│   ├── warning/
-│   │   ├── warning.html
-│
-├── notebooks/
-│   ├── analysis.ipynb
-│
-└── tests/
-    ├── test_model.py
-    ├── test_api.py
-
-
-⚙️ Tech Stack
-
-Programming Language: Python
-
-Machine Learning: Scikit-learn, XGBoost, LightGBM
-
-Backend: FastAPI
-
-Frontend: HTML, CSS, JavaScript
-
-Extension: Chrome Extension API
-
-Data Processing: Pandas, NumPy
-
-📊 Dataset
-
-The model is trained on a combined dataset:
-
-data_bal - 20000.xlsx
-
-data_imbal - 55000.xlsx
-
-Key Features Extracted:
-
-URL length
-
-Number of dots
-
-HTTPS usage
-
-Presence of special characters
-
-Domain-based attributes
-
-🛠️ Installation & Setup
-
-1. Clone Repository
-
+### 1. Clone the Repository
+```bash
 git clone [https://github.com/your-username/phishing-detection-system.git](https://github.com/your-username/phishing-detection-system.git)
 cd phishing-detection-system
+```
 
+### 2. Set Up the Python Environment
+Create and activate a virtual environment to manage dependencies:
 
-2. Create Virtual Environment
-
+**Windows:**
+```bash
 python -m venv venv
-
-
-Activate the environment:
-
-Windows:
-
 venv\Scripts\activate
+```
 
-
-Linux/Mac:
-
+**Linux/Mac:**
+```bash
+python -m venv venv
 source venv/bin/activate
+```
 
-
-3. Install Dependencies
-
+### 3. Install Dependencies
+```bash
 pip install -r requirements.txt
+```
 
-
-🧪 Run Backend Server
-
+### 4. Run the Backend API
 Start the FastAPI server:
-
+```bash
 cd backend
 uvicorn main:app --reload
+```
+*The API documentation will be available at: [http://localhost:8000/docs](http://localhost:8000/docs)*
 
+---
 
-Open your browser and navigate to the interactive API documentation:
-👉 http://localhost:8000/docs
+## 🌐 Chrome Extension Setup
 
-🌐 Chrome Extension Setup
+1. Open Google Chrome and navigate to `chrome://extensions/`.
+2. Toggle **Developer mode** on (top right corner).
+3. Click **Load unpacked**.
+4. Select the `extension/` folder from this repository.
+5. The extension is now active! Navigate to any website to see the model in action.
 
-Open Google Chrome.
+---
 
-Navigate to chrome://extensions.
+## 🔄 System Workflow
 
-Toggle Developer Mode on (top right corner).
+```text
+[ User Browses Website ] 
+       │
+       ▼
+[ Chrome Extension Extracts Features ]
+       │
+       ▼
+[ Sends Data to FastAPI Backend ]
+       │
+       ▼
+[ Hybrid ML Model Evaluates Data ]
+       │
+       ▼
+[ Returns Prediction (Safe / Phishing) ]
+       │
+       ▼
+[ Extension Allows Access OR Blocks & Shows Warning ]
+```
 
-Click Load Unpacked.
+---
 
-Select the extension/ folder from this repository.
+## 📊 Dataset & Performance
 
-🔄 System Workflow
+The model is trained on a robust, combined dataset:
+* `data_bal.xlsx` (20,000 records)
+* `data_imbal.xlsx` (55,000 records)
 
-graph TD;
-    A[User opens a website] --> B[Chrome Extension triggers];
-    B --> C[Extracts URL Features];
-    C --> D[Sends POST request to FastAPI Backend];
-    D --> E[Hybrid ML Model processes data];
-    E --> F{Prediction Result};
-    F -- Phishing --> G[Block page & Show Warning];
-    F -- Safe --> H[Allow normal browsing];
+**Key Performance Focus:**
+While Accuracy and Precision are high, the model is heavily optimized for **Recall** to ensure malicious sites are strictly identified, minimizing false negatives in phishing detection.
 
+---
 
-(Note: The above diagram uses Mermaid.js which renders beautifully as a visual flowchart on GitHub!)
+## 📁 Project Structure
 
-📈 Performance Metrics
+```text
+phishing-detection-system/
+├── backend/                  # FastAPI server and ML pipeline
+│   ├── main.py               # API endpoints
+│   ├── model_loader.py       # Loads the .pkl model
+│   └── feature_extractor.py  # Parses URLs into ML features
+├── extension/                # Chrome Extension files
+│   ├── manifest.json         
+│   ├── background.js         
+│   ├── content.js            
+│   ├── popup/                # Extension UI
+│   └── warning/              # Block page UI
+├── ml/                       # Machine Learning scripts
+│   ├── train_model.py        
+│   ├── evaluate_model.py     
+│   └── hybrid_model.pkl      # Saved ensemble model
+├── data/                     # Raw and processed datasets
+├── notebooks/                # Jupyter notebooks for EDA
+├── tests/                    # Unit and API tests
+├── requirements.txt          # Python dependencies
+└── README.md                 # Project documentation
+```
 
-The model is evaluated based on:
+---
 
-Accuracy: Overall correctness of the model.
+## 🔮 Future Enhancements
 
-Precision: Accuracy of positive (phishing) predictions.
+* **Deep Learning Integration:** Implement LSTM or BERT models for sequence-based URL analysis.
+* **Visual Similarity Detection:** Compare website UI/logos against known legitimate brands.
+* **Mobile Browser Support:** Extend support to Firefox and mobile-compatible browsers.
+* **Threat Intelligence Feed:** Integrate with live APIs (e.g., PhishTank, VirusTotal) for real-time updates.
 
-Recall: Ability to find all phishing sites (Most important metric for security).
+---
 
-F1-score: Balance between Precision and Recall.
+## 👨‍💻 Author
 
-🎯 Expected Outcome
+**Ritiz Shukla** *B.Tech in Artificial Intelligence & Machine Learning | Maharana Institute of Professional Studies* * **GitHub:** [@your-github-username](https://github.com/your-github-username)
+* **Kaggle:** [ritizshukla](https://www.kaggle.com/ritizshukla)
+* **LinkedIn:** [Your LinkedIn Profile](https://www.linkedin.com/in/your-linkedin-profile)
 
-Real-time, on-the-fly phishing detection.
+---
 
-Significantly improved browsing security for end-users.
+## ⭐ Support
 
-Reduced risk of credential theft and social engineering attacks.
-
-A highly scalable AI-based cybersecurity solution.
-
-🔮 Future Enhancements
-
-[ ] Deep Learning Integration: Implement LSTM or BERT for complex URL sequence analysis.
-
-[ ] Visual Phishing Detection: Compare website screenshots against known legitimate brands.
-
-[ ] Mobile Support: Develop extensions for mobile browsers (e.g., Firefox/Kiwi on Android).
-
-[ ] Threat Intelligence: Sync with global threat feeds (e.g., VirusTotal, PhishTank APIs).
-
-📚 References
-
-PhishTank Dataset
-
-Kaggle Phishing Datasets
-
-Academic research papers on Ensemble Learning for phishing detection.
-
-👨‍💻 Author
-
-Ritiz Shukla | B.Tech Computer Science & Engineering
-LinkedIn | Portfolio | Email
-
-⭐ Support
-
-If you found this project helpful, please consider giving it a ⭐ on GitHub! It helps others find it and motivates me to keep building.
+If you found this project helpful or learned something new, please consider giving it a ⭐ on GitHub!
+```

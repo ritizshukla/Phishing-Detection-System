@@ -182,9 +182,9 @@ phishing-detection-system/
 
 ## 👨‍💻 Author
 
-**Ritiz Shukla** *B.Tech in Artificial Intelligence & Machine Learning | Maharana Institute of Professional Studies* * **GitHub:** [@your-github-username](https://github.com/your-github-username)
-* **Kaggle:** [ritizshukla](https://www.kaggle.com/ritizshukla)
-* **LinkedIn:** [Your LinkedIn Profile](https://www.linkedin.com/in/your-linkedin-profile)
+**Ritiz Shukla** *B.Tech in Artificial Intelligence & Machine Learning | Maharana Institute of Professional Studies* * **GitHub:** [@ritizshukla](https://github.com/ritizshukla)
+* **Kaggle:** [rititizshukla](https://www.kaggle.com/ritizshukla)
+* **LinkedIn:** [ritizshukla](https://www.linkedin.com/in/ritiz-shukla/)
 
 ---
 

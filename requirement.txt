@@ -6,3 +6,6 @@ lightgbm
 fastapi
 uvicorn
 joblib
+matplotlib
+seaborn
+openpyxl

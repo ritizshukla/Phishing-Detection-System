@@ -1,8 +1,18 @@
 from fastapi import FastAPI
 from backend.model_loader import get_model
 from backend.feature_extractor import extract_features
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
+
+# 🔥 FIX CORS ISSUE
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 model = get_model()
 

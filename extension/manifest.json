@@ -3,6 +3,7 @@
   "name": "Phishing Detector",
   "version": "1.0",
   "permissions": ["tabs"],
+  "host_permissions": ["http://localhost:8000/*"],
   "background": {
     "service_worker": "background.js"
   }

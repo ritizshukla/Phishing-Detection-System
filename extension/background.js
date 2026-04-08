@@ -2,7 +2,12 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 
   if (changeInfo.status === "complete" && tab.url) {
 
-    fetch("http://localhost:8000/predict", {
+    // Ignore chrome internal pages
+    if (tab.url.startsWith("chrome://") || tab.url.startsWith("edge://")) {
+      return;
+    }
+
+    fetch("http://127.0.0.1:8000/predict", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -13,10 +18,15 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     })
     .then(res => res.json())
     .then(data => {
+
+      console.log("Prediction:", data);
+
       if (data.prediction === 1) {
-        alert("⚠️ Phishing Website Detected!");
+        alert("⚠️ Phishing Website Detected!\n\nURL: " + tab.url);
       }
-    });
+
+    })
+    .catch(err => console.error("API Error:", err));
 
   }
 });

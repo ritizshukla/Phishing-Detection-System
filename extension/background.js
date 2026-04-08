@@ -2,7 +2,6 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 
   if (changeInfo.status === "complete" && tab.url) {
 
-    // Ignore chrome internal pages
     if (tab.url.startsWith("chrome://") || tab.url.startsWith("edge://")) {
       return;
     }
@@ -22,7 +21,13 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
       console.log("Prediction:", data);
 
       if (data.prediction === 1) {
-        alert("⚠️ Phishing Website Detected!\n\nURL: " + tab.url);
+
+        // 🚨 Redirect to warning page
+        const warningPage = chrome.runtime.getURL(
+          "warning/warning.html?url=" + encodeURIComponent(tab.url)
+        );
+
+        chrome.tabs.update(tabId, { url: warningPage });
       }
 
     })

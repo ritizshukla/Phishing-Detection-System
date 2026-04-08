@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>⚠️ Phishing Alert</title>
+  <style>
+    body {
+      background: #111;
+      color: white;
+      text-align: center;
+      font-family: Arial;
+      padding-top: 100px;
+    }
+
+    h1 {
+      color: red;
+      font-size: 40px;
+    }
+
+    p {
+      font-size: 18px;
+      margin: 20px;
+    }
+
+    button {
+      padding: 10px 20px;
+      margin: 10px;
+      font-size: 16px;
+      border: none;
+      cursor: pointer;
+    }
+
+    .safe {
+      background: green;
+      color: white;
+    }
+
+    .back {
+      background: gray;
+      color: white;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>⚠️ Phishing Website Detected!</h1>
+
+  <p>This site may steal your data.</p>
+
+  <button class="back" onclick="goBack()">Go Back</button>
+  <button class="safe" onclick="continueAnyway()">Continue Anyway</button>
+
+  <script>
+    function goBack() {
+      window.history.back();
+    }
+
+    function continueAnyway() {
+      const url = new URLSearchParams(window.location.search).get("url");
+      window.location.href = url;
+    }
+  </script>
+
+</body>
+</html>

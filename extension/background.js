@@ -2,7 +2,12 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 
   if (changeInfo.status === "complete" && tab.url) {
 
-    if (tab.url.startsWith("chrome://") || tab.url.startsWith("edge://")) {
+    // ❌ Ignore internal + warning page
+    if (
+      tab.url.startsWith("chrome://") ||
+      tab.url.startsWith("edge://") ||
+      tab.url.includes("warning.html")
+    ) {
       return;
     }
 
@@ -11,18 +16,13 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({
-        url: tab.url
-      })
+      body: JSON.stringify({ url: tab.url })
     })
     .then(res => res.json())
     .then(data => {
 
-      console.log("Prediction:", data);
-
       if (data.prediction === 1) {
 
-        // 🚨 Redirect to warning page
         const warningPage = chrome.runtime.getURL(
           "warning/warning.html?url=" + encodeURIComponent(tab.url)
         );

@@ -1,62 +1,106 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>⚠️ Phishing Alert</title>
+  <meta charset="UTF-8">
+  <title>Security Warning</title>
+
   <style>
     body {
-      background: #111;
-      color: white;
+      margin: 0;
+      height: 100vh;
+      background: linear-gradient(135deg, #0f172a, #020617);
+      color: #fff;
+      font-family: "Segoe UI", sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 40px;
+      border-radius: 20px;
+      backdrop-filter: blur(15px);
       text-align: center;
-      font-family: Arial;
-      padding-top: 100px;
+      width: 400px;
+      box-shadow: 0 0 40px rgba(255, 0, 0, 0.3);
+    }
+
+    .icon {
+      font-size: 50px;
+      color: red;
+      margin-bottom: 10px;
     }
 
     h1 {
-      color: red;
-      font-size: 40px;
+      color: #ff4d4d;
+      margin-bottom: 10px;
     }
 
     p {
-      font-size: 18px;
-      margin: 20px;
+      color: #ccc;
+      margin-bottom: 20px;
     }
 
-    button {
+    .url {
+      font-size: 12px;
+      color: #888;
+      word-break: break-all;
+      margin-bottom: 20px;
+    }
+
+    .btn {
       padding: 10px 20px;
       margin: 10px;
-      font-size: 16px;
+      border-radius: 8px;
       border: none;
       cursor: pointer;
-    }
-
-    .safe {
-      background: green;
-      color: white;
+      font-size: 14px;
+      transition: 0.3s;
     }
 
     .back {
-      background: gray;
+      background: #444;
       color: white;
+    }
+
+    .back:hover {
+      background: #666;
+    }
+
+    .continue {
+      background: #16a34a;
+      color: white;
+    }
+
+    .continue:hover {
+      background: #22c55e;
     }
   </style>
 </head>
 
 <body>
 
-  <h1>⚠️ Phishing Website Detected!</h1>
+  <div class="card">
+    <div class="icon">⚠️</div>
+    <h1>Phishing Website Detected</h1>
+    <p>This website may steal your personal data.</p>
 
-  <p>This site may steal your data.</p>
+    <div class="url" id="urlDisplay"></div>
 
-  <button class="back" onclick="goBack()">Go Back</button>
-  <button class="safe" onclick="continueAnyway()">Continue Anyway</button>
+    <button class="btn back" onclick="goBack()">Go Back</button>
+    <button class="btn continue" onclick="continueAnyway()">Continue Anyway</button>
+  </div>
 
   <script>
+    const url = new URLSearchParams(window.location.search).get("url");
+    document.getElementById("urlDisplay").innerText = url;
+
     function goBack() {
       window.history.back();
     }
 
     function continueAnyway() {
-      const url = new URLSearchParams(window.location.search).get("url");
       window.location.href = url;
     }
   </script>

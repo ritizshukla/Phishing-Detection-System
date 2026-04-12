@@ -2,78 +2,149 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const params = new URLSearchParams(window.location.search);
   const url = params.get("url");
+  const riskParam = params.get("risk");
+  const explanationParam = params.get("exp");
 
-  const meterFill = document.getElementById("meterFill");
+  const riskValueEl = document.getElementById("riskValue");
   const confidenceText = document.getElementById("confidenceText");
+  const domainText = document.getElementById("domainText");
   const explanationList = document.getElementById("explanation");
+  const goBackBtn = document.getElementById("goBack");
+  const continueBtn = document.getElementById("continue");
+  
+  let hasNavigated = false;
+  let currentUrl = url;
 
-  // API call
-  try {
-    const res = await fetch("http://127.0.0.1:8000/predict", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url })
-    });
-
-    const data = await res.json();
-
-    const confidence = Math.round(data.confidence * 100);
-    meterFill.style.width = confidence + "%";
-    confidenceText.innerText = "Risk Level: " + confidence + "%";
-
-    explanationList.innerHTML = "";
-    data.explanation.forEach(item => {
-      const li = document.createElement("li");
-      li.textContent = item;
-      explanationList.appendChild(li);
-    });
-
-  } catch (err) {
-    console.error(err);
-  }
-
-  document.getElementById("goBack").onclick = () => history.back();
-  document.getElementById("continue").onclick = () => {
-    window.location.href = url;
+  const formatPercent = value => {
+    const normalized = Math.max(0, Math.min(100, value));
+    return Number.isInteger(normalized) ? String(normalized) : normalized.toFixed(1);
   };
 
-  // 🔥 PARTICLE SYSTEM
-  const canvas = document.getElementById("particles");
-  const ctx = canvas.getContext("2d");
+  // Parse domain for display
+  let parsedDomain = "Unknown site";
+  try {
+    parsedDomain = new URL(url).hostname;
+  } catch {
+    parsedDomain = "Unknown site";
+  }
+  domainText.textContent = parsedDomain;
 
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
+  // Send allowOnce message to background script
+  const sendAllowOnce = (callback) => {
+    chrome.tabs.getCurrent(tab => {
+      const message = {
+        type: "allowOnce",
+        url: currentUrl
+      };
 
-  let particles = [];
+      if (tab && Number.isInteger(tab.id)) {
+        message.tabId = tab.id;
+      }
 
-  for (let i = 0; i < 80; i++) {
-    particles.push({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height,
-      r: Math.random() * 2,
-      dx: (Math.random() - 0.5) * 0.5,
-      dy: (Math.random() - 0.5) * 0.5
+      chrome.runtime.sendMessage(message, () => {
+        if (callback) callback();
+      });
     });
+  };
+
+  // Convert confidence to risk band label
+  const toRiskBand = (confidence) => {
+    if (confidence >= 85) return "Critical";
+    if (confidence >= 65) return "High";
+    if (confidence >= 40) return "Medium";
+    return "Elevated";
+  };
+
+  // Update UI with risk data
+  const renderRisk = (confidence, explanationItems) => {
+    const clamped = Math.max(0, Math.min(100, confidence));
+    
+    riskValueEl.textContent = formatPercent(clamped);
+    confidenceText.textContent = `Risk Level: ${formatPercent(clamped)}%`;
+
+    explanationList.innerHTML = "";
+    if (explanationItems && Array.isArray(explanationItems) && explanationItems.length > 0) {
+      explanationItems.forEach(item => {
+        const li = document.createElement("li");
+        li.textContent = item;
+        explanationList.appendChild(li);
+      });
+    } else {
+      const li = document.createElement("li");
+      li.textContent = "Suspicious page behavior detected by model.";
+      explanationList.appendChild(li);
+    }
+  };
+
+  // Parse explanation parameter
+  const parseExplanationParam = (raw) => {
+    if (!raw) return [];
+    try {
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+      return parsed.filter(item => typeof item === "string" && item.trim().length > 0);
+    } catch {
+      return [];
+    }
+  };
+
+  const paramRisk = Number.parseFloat(riskParam || "");
+  const paramExplanation = parseExplanationParam(explanationParam);
+  const hasParamRisk = Number.isFinite(paramRisk);
+
+  // Use params if available, otherwise fetch from backend
+  if (hasParamRisk) {
+    renderRisk(paramRisk, paramExplanation);
+  } else if (url) {
+    try {
+      const res = await fetch("http://127.0.0.1:8000/predict", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url })
+      });
+
+      if (!res.ok) {
+        throw new Error(`Prediction API failed with status ${res.status}`);
+      }
+
+      const data = await res.json();
+
+      const numericConfidence = Number.isFinite(data.confidence) ? data.confidence : 0;
+      const confidence = Math.max(0, Math.min(100, numericConfidence * 100));
+      const explanationItems = Array.isArray(data.explanation)
+        ? data.explanation
+        : ["Suspicious page behavior detected by model."];
+
+      renderRisk(confidence, explanationItems);
+    } catch (err) {
+      console.error("Prediction error:", err);
+      renderRisk(72, ["Could not contact detection API. Treat this page as high risk unless verified."]);
+    }
   }
 
-  function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  // Go Back button - return to previous page
+  goBackBtn.addEventListener("click", () => {
+    history.back();
+  });
 
-    particles.forEach(p => {
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(255,255,255,0.3)";
-      ctx.fill();
+  // Continue Anyway button - bypass warning and navigate
+  continueBtn.addEventListener("click", () => {
+    if (hasNavigated || !currentUrl) return;
+    hasNavigated = true;
 
-      p.x += p.dx;
-      p.y += p.dy;
+    let navigationTimeout = null;
 
-      if (p.x < 0 || p.x > canvas.width) p.dx *= -1;
-      if (p.y < 0 || p.y > canvas.height) p.dy *= -1;
-    });
+    const navigate = () => {
+      if (navigationTimeout !== null) {
+        clearTimeout(navigationTimeout);
+      }
+      window.location.href = currentUrl;
+    };
 
-    requestAnimationFrame(draw);
-  }
-
-  draw();
+    // Set timeout as fallback in case background script doesn't respond
+    navigationTimeout = setTimeout(navigate, 150);
+    
+    // Send allowOnce message to background, then navigate
+    sendAllowOnce(navigate);
+  });
 });

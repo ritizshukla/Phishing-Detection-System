@@ -4,6 +4,10 @@ from pydantic import BaseModel
 from urllib.parse import urlsplit
 from functools import lru_cache
 from pathlib import Path
+from collections import OrderedDict
+from threading import Lock
+from time import monotonic
+import ipaddress
 import pandas as pd
 
 try:
@@ -42,6 +46,47 @@ TRUSTED_SUFFIX_HOSTS = (
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 CLEAN_DATA_PATH = PROJECT_ROOT / "data" / "processed" / "training_data_clean.csv"
+THRESHOLD_CONFIG_PATH = PROJECT_ROOT / "data" / "processed" / "threshold_config.json"
+
+PREDICTION_CACHE_TTL_SECONDS = 90
+PREDICTION_CACHE_MAX_ITEMS = 2048
+
+_prediction_cache: OrderedDict[str, tuple[float, dict]] = OrderedDict()
+_prediction_cache_lock = Lock()
+
+
+SUSPICIOUS_TOKENS = {
+    "login",
+    "signin",
+    "sign-in",
+    "verify",
+    "verification",
+    "secure",
+    "update",
+    "account",
+    "password",
+    "confirm",
+    "auth",
+    "billing",
+    "invoice",
+    "reset",
+    "unlock",
+    "mfa",
+    "2fa",
+    "otp",
+    "wallet",
+    "support",
+}
+
+SHORTENER_HINTS = (
+    "bit.ly",
+    "tinyurl.com",
+    "t.co",
+    "goo.gl",
+    "ow.ly",
+    "is.gd",
+    "rb.gy",
+)
 
 
 def get_hostname(url: str) -> str:
@@ -49,6 +94,116 @@ def get_hostname(url: str) -> str:
         return urlsplit(url).hostname or ""
     except Exception:
         return ""
+
+
+@lru_cache(maxsize=1)
+def get_threshold() -> float:
+    """Load threshold from config when available; otherwise use recall-favoring default."""
+    default_threshold = 0.95
+    if not THRESHOLD_CONFIG_PATH.exists():
+        return default_threshold
+
+    try:
+        cfg = pd.read_json(THRESHOLD_CONFIG_PATH, typ="series")
+        value = float(cfg.get("threshold", default_threshold))
+    except Exception:
+        return default_threshold
+
+    return max(0.5, min(0.999, value))
+
+
+def _is_ip_host(hostname: str) -> bool:
+    host = hostname.strip().lower()
+    if not host:
+        return False
+    try:
+        ipaddress.ip_address(host)
+        return True
+    except ValueError:
+        return False
+
+
+def _suspicious_token_hits(url: str) -> list[str]:
+    lowered = url.lower()
+    return [token for token in sorted(SUSPICIOUS_TOKENS) if token in lowered]
+
+
+def _subdomain_depth(hostname: str) -> int:
+    host = hostname.strip(".")
+    if not host:
+        return 0
+    parts = host.split(".")
+    return max(len(parts) - 2, 0)
+
+
+def _is_shortener_hint(hostname: str) -> bool:
+    host = hostname.lower().strip()
+    return any(host == hint or host.endswith(f".{hint}") for hint in SHORTENER_HINTS)
+
+
+def evaluate_heuristics(url: str, hostname: str) -> tuple[int, list[str], dict]:
+    """Return heuristic risk score and explanations to improve live phishing recall."""
+    score = 0
+    reasons: list[str] = []
+    lowered = url.lower()
+    token_hits = _suspicious_token_hits(url)
+    subdomain_depth = _subdomain_depth(hostname)
+    ip_host = _is_ip_host(hostname)
+
+    if len(url) >= 90:
+        score += 1
+        reasons.append("URL is unusually long")
+
+    if url.count(".") >= 4:
+        score += 1
+        reasons.append("URL has many dot segments")
+
+    if subdomain_depth >= 3:
+        score += 2
+        reasons.append("Domain has deep subdomain nesting")
+
+    if "@" in url:
+        score += 3
+        reasons.append("Contains '@' symbol")
+
+    if "xn--" in lowered:
+        score += 3
+        reasons.append("Contains punycode marker")
+
+    if "//" in lowered.split("://", 1)[-1]:
+        score += 2
+        reasons.append("Contains double slash path trick")
+
+    redirect_markers = (
+        "redirect=",
+        "redir=",
+        "url=",
+        "next=",
+        "target=",
+        "continue=",
+        "callback=",
+    )
+    if any(marker in lowered for marker in redirect_markers):
+        score += 2
+        reasons.append("Contains redirect-style query markers")
+
+    if _is_shortener_hint(hostname):
+        score += 1
+        reasons.append("Uses URL shortener domain")
+
+    if ip_host:
+        score += 3
+        reasons.append("Uses direct IP address host")
+
+    if len(token_hits) >= 2:
+        score += 2
+        reasons.append("Contains multiple credential-related keywords")
+
+    return score, reasons, {
+        "subdomain_depth": subdomain_depth,
+        "token_hits": token_hits,
+        "ip_host": ip_host,
+    }
 
 
 def is_trusted_host(hostname: str) -> bool:
@@ -100,38 +255,75 @@ class URLRequest(BaseModel):
     url: str
 
 
+def _cache_get(url: str) -> dict | None:
+    now = monotonic()
+    with _prediction_cache_lock:
+        item = _prediction_cache.get(url)
+        if item is None:
+            return None
+
+        expires_at, payload = item
+        if now >= expires_at:
+            _prediction_cache.pop(url, None)
+            return None
+
+        # LRU touch: keep hot keys near the tail.
+        _prediction_cache.move_to_end(url)
+        return payload.copy()
+
+
+def _cache_set(url: str, payload: dict) -> None:
+    expires_at = monotonic() + PREDICTION_CACHE_TTL_SECONDS
+    with _prediction_cache_lock:
+        _prediction_cache[url] = (expires_at, payload.copy())
+        _prediction_cache.move_to_end(url)
+
+        # Remove expired entries first (cheap cleanup while mutating).
+        now = monotonic()
+        expired_keys = [
+            key for key, (entry_expires_at, _) in _prediction_cache.items()
+            if entry_expires_at <= now
+        ]
+        for key in expired_keys:
+            _prediction_cache.pop(key, None)
+
+        while len(_prediction_cache) > PREDICTION_CACHE_MAX_ITEMS:
+            _prediction_cache.popitem(last=False)
+
+
 @app.post("/predict")
 def predict(data: URLRequest):
-    url = data.url
+    url = str(data.url).strip()
+    cached = _cache_get(url)
+    if cached is not None:
+        return cached
+
     model = get_model()
     proba = predict_url_probability(model, url)
     hostname = get_hostname(url)
 
-    # Validation-backed threshold chosen to maximize precision while keeping recall usable.
-    threshold = 0.97
-    prediction = 1 if proba > threshold else 0
-    confidence = proba
+    # Realtime mode favors recall over extreme precision to avoid missing live phishing pages.
+    threshold = max(0.9, min(get_threshold(), 0.97))
+    heuristic_score, heuristic_reasons, heuristic_meta = evaluate_heuristics(url, hostname)
 
-    explanation = []
+    # Promote risky URLs even when model probability is slightly below threshold.
+    heuristic_trigger = (
+        heuristic_score >= 7
+        or (heuristic_score >= 5 and proba >= 0.7)
+        or (heuristic_meta["ip_host"] and proba >= 0.55)
+    )
 
-    if len(url) > 75:
-        explanation.append("URL is very long")
+    prediction = 1 if (proba >= threshold or heuristic_trigger) else 0
+    confidence = max(proba, 0.86) if heuristic_trigger and proba < threshold else proba
 
-    if url.count(".") > 3:
-        explanation.append("Too many subdomains")
+    explanation: list[str] = list(dict.fromkeys(heuristic_reasons))
 
-    if "@" in url:
-        explanation.append("Contains '@' symbol")
-
-    if "-" in url:
-        explanation.append("Contains hyphen")
-
-    if prediction == 1 and len(explanation) == 0:
+    if prediction == 1 and not explanation:
         explanation.append("Suspicious pattern detected")
 
     # Prevent false positives on known trusted hosts unless URL has direct spoof markers.
     has_spoof_marker = ("@" in url) or ("xn--" in hostname)
-    if is_trusted_host(hostname) and not has_spoof_marker:
+    if is_trusted_host(hostname) and not has_spoof_marker and heuristic_score < 4 and proba < 0.995:
         prediction = 0
         confidence = min(confidence, 0.25)
         explanation = ["Trusted domain matched"]
@@ -140,11 +332,14 @@ def predict(data: URLRequest):
         if not explanation:
             explanation = ["No major security issues detected"]
 
-    return {
+    response = {
         "prediction": prediction,
         "confidence": confidence,
         "explanation": explanation,
     }
+
+    _cache_set(url, response)
+    return response
 
 
 @app.exception_handler(RuntimeError)

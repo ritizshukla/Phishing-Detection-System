@@ -21,6 +21,7 @@ app = FastAPI()
 TRUSTED_EXACT_HOSTS = {
     "github.com",
     "www.github.com",
+    "accounts.github.com",
     "google.com",
     "www.google.com",
     "mail.google.com",
@@ -29,10 +30,17 @@ TRUSTED_EXACT_HOSTS = {
     "www.youtube.com",
     "paypal.com",
     "www.paypal.com",
+    "accounts.paypal.com",
     "stackoverflow.com",
     "www.stackoverflow.com",
     "microsoft.com",
     "www.microsoft.com",
+    "accounts.microsoft.com",
+    "wix.com",
+    "www.wix.com",
+    "users.wix.com",
+    "accounts.wix.com",
+    "login.wix.com",
 }
 
 TRUSTED_SUFFIX_HOSTS = (
@@ -88,6 +96,20 @@ SHORTENER_HINTS = (
     "rb.gy",
 )
 
+HOSTED_PLATFORM_HINTS = (
+    "wixstudio.com",
+    "wixsite.com",
+    "webflow.io",
+    "webnode.page",
+    "weebly.com",
+    "site123.me",
+    "github.io",
+    "netlify.app",
+    "vercel.app",
+    "pages.dev",
+    "wordpress.com",
+)
+
 
 def get_hostname(url: str) -> str:
     try:
@@ -141,6 +163,14 @@ def _is_shortener_hint(hostname: str) -> bool:
     return any(host == hint or host.endswith(f".{hint}") for hint in SHORTENER_HINTS)
 
 
+def _hosted_platform_hint(hostname: str) -> str:
+    host = hostname.lower().strip()
+    for hint in HOSTED_PLATFORM_HINTS:
+        if host == hint or host.endswith(f".{hint}"):
+            return hint
+    return ""
+
+
 def evaluate_heuristics(url: str, hostname: str) -> tuple[int, list[str], dict]:
     """Return heuristic risk score and explanations to improve live phishing recall."""
     score = 0
@@ -149,6 +179,9 @@ def evaluate_heuristics(url: str, hostname: str) -> tuple[int, list[str], dict]:
     token_hits = _suspicious_token_hits(url)
     subdomain_depth = _subdomain_depth(hostname)
     ip_host = _is_ip_host(hostname)
+    hosted_platform = _hosted_platform_hint(hostname)
+    first_label = hostname.strip(".").lower().split(".")[0] if hostname.strip(".") else ""
+    suspicious_hosted_subdomain = False
 
     if len(url) >= 90:
         score += 1
@@ -191,6 +224,26 @@ def evaluate_heuristics(url: str, hostname: str) -> tuple[int, list[str], dict]:
         score += 1
         reasons.append("Uses URL shortener domain")
 
+    if hosted_platform:
+        score += 2
+        reasons.append(f"Uses hosted platform domain ({hosted_platform})")
+
+        if first_label:
+            if "-" in first_label:
+                score += 2
+                suspicious_hosted_subdomain = True
+                reasons.append("Hosted subdomain uses hyphenated branding")
+
+            if len(first_label) >= 10:
+                score += 1
+                suspicious_hosted_subdomain = True
+                reasons.append("Hosted subdomain is unusually long")
+
+            if first_label.count("-") >= 2:
+                score += 1
+                suspicious_hosted_subdomain = True
+                reasons.append("Hosted subdomain has multiple hyphens")
+
     if ip_host:
         score += 3
         reasons.append("Uses direct IP address host")
@@ -203,6 +256,8 @@ def evaluate_heuristics(url: str, hostname: str) -> tuple[int, list[str], dict]:
         "subdomain_depth": subdomain_depth,
         "token_hits": token_hits,
         "ip_host": ip_host,
+        "hosted_platform": bool(hosted_platform),
+        "suspicious_hosted_subdomain": suspicious_hosted_subdomain,
     }
 
 
@@ -302,6 +357,17 @@ def predict(data: URLRequest):
     proba = predict_url_probability(model, url)
     hostname = get_hostname(url)
 
+    # Check trusted hosts early to always bypass phishing checks.
+    has_spoof_marker = ("@" in url) or ("xn--" in hostname)
+    if is_trusted_host(hostname) and not has_spoof_marker:
+        response = {
+            "prediction": 0,
+            "confidence": min(proba, 0.25),
+            "explanation": ["Trusted domain matched"],
+        }
+        _cache_set(url, response)
+        return response
+
     # Realtime mode favors recall over extreme precision to avoid missing live phishing pages.
     threshold = max(0.9, min(get_threshold(), 0.97))
     heuristic_score, heuristic_reasons, heuristic_meta = evaluate_heuristics(url, hostname)
@@ -311,6 +377,11 @@ def predict(data: URLRequest):
         heuristic_score >= 7
         or (heuristic_score >= 5 and proba >= 0.7)
         or (heuristic_meta["ip_host"] and proba >= 0.55)
+        or (
+            heuristic_meta["hosted_platform"]
+            and heuristic_meta["suspicious_hosted_subdomain"]
+            and proba >= 0.25
+        )
     )
 
     prediction = 1 if (proba >= threshold or heuristic_trigger) else 0
@@ -320,13 +391,6 @@ def predict(data: URLRequest):
 
     if prediction == 1 and not explanation:
         explanation.append("Suspicious pattern detected")
-
-    # Prevent false positives on known trusted hosts unless URL has direct spoof markers.
-    has_spoof_marker = ("@" in url) or ("xn--" in hostname)
-    if is_trusted_host(hostname) and not has_spoof_marker and heuristic_score < 4 and proba < 0.995:
-        prediction = 0
-        confidence = min(confidence, 0.25)
-        explanation = ["Trusted domain matched"]
 
     if prediction == 0:
         if not explanation:

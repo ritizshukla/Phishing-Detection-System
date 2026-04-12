@@ -2,6 +2,7 @@ const safeBypassByTab = new Map();
 const inFlightByTab = new Map();
 const predictionCache = new Map();
 const recentBypassByTab = new Map();
+const lastNavigatedUrlByTab = new Map();
 
 const CACHE_TTL_MS = 60 * 1000;
 const REQUEST_TIMEOUT_MS = 2500;
@@ -120,18 +121,23 @@ function setCachedPrediction(url, data) {
   });
 }
 
-function buildWarningUrl(targetUrl, confidence, explanation) {
+function buildWarningUrl(targetUrl, confidence, explanation, previousUrl) {
   const risk = Math.max(0, Math.min(100, confidence * 100));
   const compactExplanation = explanation
     .filter(item => typeof item === "string")
     .slice(0, 5)
     .map(item => item.slice(0, 180));
 
-  return chrome.runtime.getURL(
+  let warningUrl =
     "warning/warning.html?url=" + encodeURIComponent(targetUrl) +
     "&risk=" + encodeURIComponent(String(risk)) +
-    "&exp=" + encodeURIComponent(JSON.stringify(compactExplanation))
-  );
+    "&exp=" + encodeURIComponent(JSON.stringify(compactExplanation));
+
+  if (previousUrl && isSupportedUrl(previousUrl) && !isInternalUrl(previousUrl)) {
+    warningUrl += "&from=" + encodeURIComponent(previousUrl);
+  }
+
+  return chrome.runtime.getURL(warningUrl);
 }
 
 async function isTabStillOnUrl(tabId, expectedUrl) {
@@ -143,7 +149,7 @@ async function isTabStillOnUrl(tabId, expectedUrl) {
   }
 }
 
-async function routeToResult(tabId, url, result) {
+async function routeToResult(tabId, url, result, previousUrl) {
   const confidence = Number.isFinite(result.confidence) ? result.confidence : 0;
 
   if (result.prediction === 1) {
@@ -155,7 +161,7 @@ async function routeToResult(tabId, url, result) {
       explanation: result.explanation
     });
 
-    const warningPage = buildWarningUrl(url, confidence, result.explanation);
+    const warningPage = buildWarningUrl(url, confidence, result.explanation, previousUrl);
     await chrome.tabs.update(tabId, { url: warningPage });
     return;
   }
@@ -206,6 +212,8 @@ async function processUrl(tabId, url) {
     return;
   }
 
+  const previousUrl = lastNavigatedUrlByTab.get(tabId) || null;
+
   const pending = inFlightByTab.get(tabId);
   if (pending?.url === url) return;
   if (pending && pending.url !== url) {
@@ -214,7 +222,8 @@ async function processUrl(tabId, url) {
 
   const cached = getCachedPrediction(url);
   if (cached) {
-    await routeToResult(tabId, url, cached);
+    await routeToResult(tabId, url, cached, previousUrl);
+    lastNavigatedUrlByTab.set(tabId, url);
     return;
   }
 
@@ -234,7 +243,8 @@ async function processUrl(tabId, url) {
 
     if (!(await isTabStillOnUrl(tabId, url))) return;
 
-    await routeToResult(tabId, url, result);
+    await routeToResult(tabId, url, result, previousUrl);
+    lastNavigatedUrlByTab.set(tabId, url);
   } catch (err) {
     if (controller.signal.aborted) return;
 
@@ -250,6 +260,10 @@ async function processUrl(tabId, url) {
     if (current?.url === url) {
       inFlightByTab.delete(tabId);
     }
+  }
+
+  if (!isInternalUrl(url)) {
+    lastNavigatedUrlByTab.set(tabId, url);
   }
 }
 

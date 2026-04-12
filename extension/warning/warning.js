@@ -2,6 +2,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const params = new URLSearchParams(window.location.search);
   const url = params.get("url");
+  const fromUrl = params.get("from");
   const riskParam = params.get("risk");
   const explanationParam = params.get("exp");
 
@@ -19,6 +20,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     const normalized = Math.max(0, Math.min(100, value));
     return Number.isInteger(normalized) ? String(normalized) : normalized.toFixed(1);
   };
+
+  const isSupportedUrl = value => /^https?:\/\//i.test(value || "");
 
   // Parse domain for display
   let parsedDomain = "Unknown site";
@@ -124,6 +127,16 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Go Back button - return to previous page
   goBackBtn.addEventListener("click", () => {
+    if (isSupportedUrl(fromUrl) && fromUrl !== url) {
+      window.location.replace(fromUrl);
+      return;
+    }
+
+    if (history.length > 2) {
+      history.go(-2);
+      return;
+    }
+
     history.back();
   });
 

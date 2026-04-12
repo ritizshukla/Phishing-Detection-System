@@ -1,109 +1,34 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="UTF-8">
   <title>Security Warning</title>
-
-  <style>
-    body {
-      margin: 0;
-      height: 100vh;
-      background: linear-gradient(135deg, #0f172a, #020617);
-      color: #fff;
-      font-family: "Segoe UI", sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-
-    .card {
-      background: rgba(255, 255, 255, 0.05);
-      padding: 40px;
-      border-radius: 20px;
-      backdrop-filter: blur(15px);
-      text-align: center;
-      width: 400px;
-      box-shadow: 0 0 40px rgba(255, 0, 0, 0.3);
-    }
-
-    .icon {
-      font-size: 50px;
-      color: red;
-      margin-bottom: 10px;
-    }
-
-    h1 {
-      color: #ff4d4d;
-      margin-bottom: 10px;
-    }
-
-    p {
-      color: #ccc;
-      margin-bottom: 20px;
-    }
-
-    .url {
-      font-size: 12px;
-      color: #888;
-      word-break: break-all;
-      margin-bottom: 20px;
-    }
-
-    .btn {
-      padding: 10px 20px;
-      margin: 10px;
-      border-radius: 8px;
-      border: none;
-      cursor: pointer;
-      font-size: 14px;
-      transition: 0.3s;
-    }
-
-    .back {
-      background: #444;
-      color: white;
-    }
-
-    .back:hover {
-      background: #666;
-    }
-
-    .continue {
-      background: #16a34a;
-      color: white;
-    }
-
-    .continue:hover {
-      background: #22c55e;
-    }
-  </style>
+  <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
 
-  <div class="card">
-    <div class="icon">⚠️</div>
-    <h1>Phishing Website Detected</h1>
-    <p>This website may steal your personal data.</p>
+<!-- Background particles -->
+<canvas id="particles"></canvas>
 
-    <div class="url" id="urlDisplay"></div>
+<!-- Glass Card -->
+<div class="card">
+  <h1 id="title">Phishing Website Detected</h1>
+  <p class="subtitle" id="subtitle">This website may be dangerous</p>
 
-    <button class="btn back" onclick="goBack()">Go Back</button>
-    <button class="btn continue" onclick="continueAnyway()">Continue Anyway</button>
+  <div class="meter">
+    <div class="meter-fill" id="meterFill"></div>
   </div>
 
-  <script>
-    const url = new URLSearchParams(window.location.search).get("url");
-    document.getElementById("urlDisplay").innerText = url;
+  <p id="confidenceText">Risk Level: 0%</p>
 
-    function goBack() {
-      window.history.back();
-    }
+  <ul id="explanation"></ul>
 
-    function continueAnyway() {
-      window.location.href = url;
-    }
-  </script>
+  <div class="buttons">
+    <button id="goBack">Go Back</button>
+    <button id="continue">Proceed Anyway</button>
+  </div>
+</div>
 
+<script src="warning.js"></script>
 </body>
 </html>

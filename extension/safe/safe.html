@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Safe Website</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="island-wrap">
+  <div class="island" role="status" aria-live="polite">
+    <div class="pulse"></div>
+    <div class="content">
+      <div class="title-row">
+        <h1>Safe Site</h1>
+        <span id="safeScore" class="score">0%</span>
+      </div>
+      <p class="subtitle">No major risks detected</p>
+      <p id="countdownText" class="countdown">Opening in 3s</p>
+    </div>
+    <button id="openSite" class="open-btn" type="button">Open now</button>
+  </div>
+</div>
+
+<script src="safe.js"></script>
+</body>
+</html>
